@@ -7,9 +7,14 @@ We currently provide:
 
 - Our code base is divided into two pars: The folder *binary_autoencoder* contains code for the training of the binarizing encoder-decoder model. The folder *bernoulli-diffusion*   contains code for the training and evaluation of the Bernoulli diffusion model in the binary latent space. 
 
+## Data
+The BRATS2020 dataset can be downloaded [here](https://www.med.upenn.edu/cbica/brats2020/data.html).
+The OCT2017 dataset can be downloaded [here](https://www.kaggle.com/datasets/paultimothymooney/kermany2018).
 - A mini-example how the data needs to be stored can be found in the folder *data* 
 
-![MarineGEO circle logo](./overview1.png "MarineGEO logo")
+
+![drawing](./overview1.png){ width: 200px; }
+
 
 ### Training of the Binarizing Autoencoder
 - To run the training of the binarizing autoencoder on the BRATS2020 dataset, run

@@ -1,0 +1,13 @@
+
+Finetune AE:
+
+Latentspace 128 32 32
+
+python  ./Binary_AE/train_ae.py --dataset brats --amp --ema --steps_per_save_output 5000 --codebook_size 128  --nf 32 --steps_per_log 200 --steps_per_checkpoint 10000 --img_size 256 --batch_size 24 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4  --log_dir logs/binaryae_brats --norm_first --data_dir /home/juliawolleb/PycharmProjects/Python_Tutorials/BerDiff/diffusion-anomaly-berdiff/data/brats/train_healthy
+
+
+python  ./Binary_AE/train_ae.py --dataset OCT --amp --ema --steps_per_save_output 5000 --codebook_size 128  --nf 32 --steps_per_log 200 --steps_per_checkpoint 10000 --img_size 256 --batch_size 24 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --log_dir logs/binaryae_OCT --norm_first --data_dir /home/juliawolleb/PycharmProjects/Python_Tutorials/BerDiff/diffusion-anomaly-berdiff/data/OCT/NORMAL
+
+
+
+

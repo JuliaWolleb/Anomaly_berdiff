@@ -1,0 +1,215 @@
+"""
+Generate a large batch of image samples from a model and save them as a large
+numpy array. This can be used to produce samples for FID evaluation.
+"""
+
+import argparse
+import os
+from skimage import exposure
+import sys
+sys.path.append("..")
+sys.path.append(".")
+sys.path.append('./Binary_AE')
+sys.path.append('./Bernoulli_Diffusion')
+import csv
+import numpy as np
+import nibabel
+import torch as torch
+import torch.distributed as dist
+from guided_diffusion.train_util import visualize
+import scipy
+start = torch.cuda.Event(enable_timing=True)
+end = torch.cuda.Event(enable_timing=True)
+import torchvision.transforms.functional as F
+from evaluation import apply_2d_median_filter,filter_2d_connected_components
+torch.manual_seed(0)
+import random
+random.seed(0)
+
+import sys
+import argparse
+
+
+from guided_diffusion import dist_util, logger
+from guided_diffusion.image_datasets import load_data
+from guided_diffusion.resample import create_named_schedule_sampler
+from guided_diffusion.script_util import (
+    model_and_diffusion_defaults,
+    create_model_and_diffusion,
+    args_to_dict,
+    add_dict_to_argparser,
+)
+from guided_diffusion.train_util import TrainLoop
+from visdom import Visdom
+viz = Visdom(port=8850)
+
+
+from models.binaryae import BinaryAutoEncoder, Generator
+from hparams import get_sampler_hparams
+from utils.sampler_utils import retrieve_autoencoder_components_state_dicts, \
+    get_sampler, get_online_samples, get_online_samples_guidance, get_samples_test, get_samples_temp, get_samples_loop
+
+def dice_score(pred, targs):
+    pred = (pred>0).float()
+    return 2. * (pred*targs).sum() / (pred+targs).sum()
+
+
+
+
+def main():
+
+    H = get_sampler_hparams()
+    sample_healthy=False
+    H.amp = True
+    H.norm_first = True
+
+
+    ae_state_dict = retrieve_autoencoder_components_state_dicts(
+        H,
+        ['encoder', 'quantize', 'generator'],
+        remove_component_from_key=False
+    )
+
+    bergan = BinaryAutoEncoder(H)
+    bergan.load_state_dict(ae_state_dict, strict=True)
+    bergan = bergan.cuda()
+    del ae_state_dict
+
+    device = torch.device("cuda:0")
+    print('device', device)
+    args, unknown = create_argparser().parse_known_args()
+
+    datal = load_data(
+        data_dir=H.data_dir,
+        batch_size=1,
+        image_size=H.image_size,
+    )
+    print('dataset is brats')
+    val_loader = iter(datal)
+
+    dist_util.setup_dist()
+    print('device',dist_util.dev() )
+    logger.configure()
+
+    logger.log("creating model and diffusion...")
+    model, diffusion = create_model_and_diffusion(
+        **args_to_dict(args, model_and_diffusion_defaults().keys())
+    )
+    model.load_state_dict(
+        dist_util.load_state_dict(args.model_path, map_location="cpu")
+    )
+    print('loaded model', args.model_path)
+    model.to(dist_util.dev())
+    if args.use_fp16:
+        model.convert_to_fp16()
+    model.eval()
+
+    def count_parameters(model):
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    print('unet', count_parameters(model))
+    print('AE', count_parameters(bergan))
+
+    logger.log("sampling...")
+
+    k=0
+    while k < args.num_samples:
+        k+=1
+        data, out = next(val_loader)
+        number=out["name"]
+        batch=data[:,:4,...]
+        mask = np.zeros_like(batch[0])
+        N = 1  #we have 4 channels
+        for j in range(N):
+            mask = np.logical_or(mask, batch[0, j])
+        mask = scipy.ndimage.morphology.binary_fill_holes(mask)*1
+        mask2= mask[None,...]
+        Cmask= F.resize(torch.tensor(mask2[:,:1,...]), size = (32,32))
+        Cmask[Cmask<0.5]=0
+        Cmask[Cmask>= 0.5] = 1
+
+        Cmask = Cmask.repeat(1, 128, 1, 1)
+
+
+        viz.image(visualize(data[0, 4, ...]), opts=dict(caption="GT label"))
+        viz.image(visualize(batch[0, 1, ...]), opts=dict(caption="img input 1"))
+        viz.image(visualize(batch[0, 2, ...]), opts=dict(caption="img input 2"))
+        viz.image(visualize(batch[0, 3, ...]), opts=dict(caption="img input 3"))
+
+
+        model_kwargs = {}
+        sample_fn = (
+            diffusion.p_sample_loop_anomaly if not args.use_ddim else diffusion.ddim_sample_loop_anomaly
+        )
+
+        img=batch.cuda()
+        start.record()
+
+        code = bergan(img, code_only=True).detach()
+
+        sample= sample_fn(
+            model,
+            (args.batch_size, 128,32, 32),
+            code,
+            model_kwargs=model_kwargs,
+        )
+
+        img=torch.zeros(args.batch_size, 4, 256,256)
+        reconstruction,_,_ = bergan(img, code_only=False, code=sample)
+        end.record()
+        torch.cuda.synchronize()
+        print('elapsed time', start.elapsed_time(end))
+
+        reconstruction=torch.clamp(reconstruction,0,1).detach().cpu()
+
+        print('did reconstruction', reconstruction.shape)
+        viz.image(visualize(reconstruction[0, 3, ...]), opts=dict(caption="generated reconstruction"))
+        viz.image(visualize(reconstruction[0, 1, ...]), opts=dict(caption="generated reconstruction1"))
+        viz.image(visualize(reconstruction[0, 2, ...]), opts=dict(caption="generated reconstruction2"))
+        viz.image(visualize(reconstruction[0, 3, ...]), opts=dict(caption="generated reconstruction3"))
+
+
+        diff = torch.abs(reconstruction[0, :4, ...] - batch[0,...].cpu()).square()
+
+    dist.barrier()
+    logger.log("sampling complete")
+
+
+def create_argparser():
+    defaults = dict(
+        num_samples=1038,
+        batch_size=1,
+        data_dir="./data/brats/train_healthy",
+        use_ddim=True,
+        model_path='./results/brats000000.pt',
+        use_fp16=False,
+        img_channels=4,
+        weight_decay=0.0,
+        lr_anneal_steps=0,
+        microbatch=-1,  # -1 disables microbatches
+        log_interval=100,
+        save_interval=10000,
+        resume_checkpoint='',
+        fp16_scale_growth=1e-3,
+        dataset='brats',
+        ae_load_dir='',
+        ae_load_step=260000,
+        sampler="bld",
+        codebook_size=64,
+        nf=32,
+        img_size=256,
+        latent_shape=[1, 128, 128],
+        n_channels=4,
+        ch_mult=[1, 2],
+        mean_type="epsilon"
+    )
+  #  H = get_sampler_hparams()
+    defaults.update(model_and_diffusion_defaults())
+    parser = argparse.ArgumentParser()
+    add_dict_to_argparser(parser, defaults)
+
+    return parser
+
+
+if __name__ == "__main__":
+    main()
