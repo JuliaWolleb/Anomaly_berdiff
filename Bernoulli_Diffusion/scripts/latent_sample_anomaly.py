@@ -59,10 +59,6 @@ def dice_score(pred, targs):
 def main():
 
     H = get_sampler_hparams()
-    sample_healthy=False
-    H.amp = True
-    H.norm_first = True
-
 
     ae_state_dict = retrieve_autoencoder_components_state_dicts(
         H,
@@ -75,8 +71,6 @@ def main():
     bergan = bergan.cuda()
     del ae_state_dict
 
-    device = torch.device("cuda:0")
-    print('device', device)
     args, unknown = create_argparser().parse_known_args()
 
     datal = load_data(
@@ -84,9 +78,7 @@ def main():
         batch_size=1,
         image_size=H.image_size,
     )
-    print('dataset is brats')
     val_loader = iter(datal)
-
     dist_util.setup_dist()
     print('device',dist_util.dev() )
     logger.configure()
@@ -116,20 +108,7 @@ def main():
     while k < args.num_samples:
         k+=1
         data, out = next(val_loader)
-        number=out["name"]
         batch=data[:,:4,...]
-        mask = np.zeros_like(batch[0])
-        N = 1  #we have 4 channels
-        for j in range(N):
-            mask = np.logical_or(mask, batch[0, j])
-        mask = scipy.ndimage.morphology.binary_fill_holes(mask)*1
-        mask2= mask[None,...]
-        Cmask= F.resize(torch.tensor(mask2[:,:1,...]), size = (32,32))
-        Cmask[Cmask<0.5]=0
-        Cmask[Cmask>= 0.5] = 1
-
-        Cmask = Cmask.repeat(1, 128, 1, 1)
-
 
         viz.image(visualize(data[0, 4, ...]), opts=dict(caption="GT label"))
         viz.image(visualize(batch[0, 1, ...]), opts=dict(caption="img input 1"))
@@ -147,13 +126,12 @@ def main():
 
         code = bergan(img, code_only=True).detach()
 
-        sample= sample_fn(
+        sample, mask= sample_fn(
             model,
             (args.batch_size, 128,32, 32),
             code,
             model_kwargs=model_kwargs,
         )
-
         img=torch.zeros(args.batch_size, 4, 256,256)
         reconstruction,_,_ = bergan(img, code_only=False, code=sample)
         end.record()
@@ -179,7 +157,7 @@ def create_argparser():
     defaults = dict(
         num_samples=1038,
         batch_size=1,
-        data_dir="./data/brats/train_healthy",
+        data_dir="./data/brats/validation",
         use_ddim=True,
         model_path='./results/brats000000.pt',
         use_fp16=False,
@@ -203,7 +181,6 @@ def create_argparser():
         ch_mult=[1, 2],
         mean_type="epsilon"
     )
-  #  H = get_sampler_hparams()
     defaults.update(model_and_diffusion_defaults())
     parser = argparse.ArgumentParser()
     add_dict_to_argparser(parser, defaults)

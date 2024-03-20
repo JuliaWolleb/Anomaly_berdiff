@@ -386,7 +386,6 @@ class BinomialDiffusion:
         org,
         mask,
         t,
-        Cmask=None,
         denoised_fn=None,
         model_kwargs=None,
     ):
@@ -422,9 +421,9 @@ class BinomialDiffusion:
             sample = Binomial(1, model_mean).sample()
 
 
-            return {"sample": sample, "pred_xstart": out["pred_xstart"], "model_output": out["model_output"]}#, "mask": Mask}
+            return {"sample": sample, "pred_xstart": out["pred_xstart"], "model_output": out["model_output"], "mask": Mask}
         else:
-            return {"sample": out["mean"], "pred_xstart": out["pred_xstart"], "model_output": out["model_output"]}#, "mask": mask}
+            return {"sample": out["mean"], "pred_xstart": out["pred_xstart"], "model_output": out["model_output"], "mask": mask}
 
     def ddim_sample_loop(
         self,
@@ -477,7 +476,7 @@ class BinomialDiffusion:
 
         final = None
         print('ended up in ddim anomaly sampling loop')
-        for sample in self.ddim_sample_loop_progressive(
+        for sample, Mask in self.ddim_sample_loop_progressive(
             model,
             shape,
             time=t,
@@ -490,7 +489,7 @@ class BinomialDiffusion:
             progress=progress,
         ):
             final = sample
-        return final["sample"]#, Mask
+        return final["sample"], Mask
     def ddim_sample_loop_progressive(
         self,
         model,
@@ -521,8 +520,8 @@ class BinomialDiffusion:
             img = Binomial(1, th.ones(*shape)/2).sample().to(device)*0
 
         indices = list(range(time))[::-1]
-        Cmask=mask.bool().detach().clone()
-
+        if mask == None:
+            mask = th.zeros(img.shape).to(device)
 
         if progress:
             # Lazy import so that we don't depend on tqdm.
@@ -538,10 +537,8 @@ class BinomialDiffusion:
                     model,
                     img,
                     org,
-                    mask.cuda(),
-                    org,
+                    mask,
                     t,
-                    Cmask=None,
                     denoised_fn=denoised_fn,
                     model_kwargs=model_kwargs,
                 )
@@ -620,9 +617,7 @@ class BinomialDiffusion:
             model_kwargs = {}
 
         x_t = self.q_sample(x_start, t)
-      #  print('x_t', x_t.shape)
-        #if t>900:
-         #   print('t', t, 'minimax', x_t.min(), x_t.max(), x_t.sum())
+
         terms = {}
 
         if self.loss_type == LossType.KL or self.loss_type == LossType.RESCALED_KL or self.loss_type == LossType.MIX:
@@ -656,18 +651,10 @@ class BinomialDiffusion:
                 ModelMeanType.EPSILON: self._predict_xstart_from_eps(x_t=x_t, t=t, eps=x_start),
             }[self.model_mean_type]
             model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
-         #   viz.image(model_output[0, 0, ...], opts=dict(caption="raw_" + str(t)))
-          #  viz.image(x_t[0, 0, ...], opts=dict(caption="input_" + str(t)))
             terms["loss"] = mean_flat(-binomial_log_likelihood(target, means=model_output)) / np.log(2.0)
             terms["bce"] = mean_flat(-binomial_log_likelihood(target, means=model_output)) / np.log(2.0)
         else:
             raise NotImplementedError(self.loss_type)
-    #    print('modeloutput', model_output.max(), model_output.min())
-        #viz.image(model_output[0,0,...], opts=dict(caption="modeloutput binomial_"+str(t)))
-     #   viz.image(x_t[0,0,...], opts=dict(caption="xt"))
-      #  viz.image(x_start[0, 0, ...], opts=dict(caption="xstart"))
-
-
 
         return (terms, model_output)
 

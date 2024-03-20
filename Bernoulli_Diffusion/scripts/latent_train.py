@@ -19,8 +19,6 @@ from guided_diffusion.script_util import (
     add_dict_to_argparser,
 )
 from guided_diffusion.train_util import TrainLoop
-from visdom import Visdom
-viz = Visdom(port=8852)
 
 import torch
 
@@ -33,13 +31,8 @@ from utils.sampler_utils import retrieve_autoencoder_components_state_dicts, \
 
 def main2():
 
-    print('we are in the right function')
     H = get_sampler_hparams()
-    print('got hparams', H)
-    print('H load dir', H.ae_load_dir)
-    print('H latent shape', H.latent_shape)
     H.norm_first = True
-
 
     ae_state_dict = retrieve_autoencoder_components_state_dicts(
         H,
@@ -51,19 +44,11 @@ def main2():
     bergan.load_state_dict(ae_state_dict, strict=True)
     bergan = bergan.cuda()
     del ae_state_dict
-    device = torch.device("cuda:1")
-    print('device', device)
-
-
-    print('got until here, I was able to load binaryAE', H.ae_load_dir, H.ae_load_step)
-    #args= create_argparser().parse_args()
 
     args, unknown = create_argparser().parse_known_args()
     print(args)
-    # Namespace(foo='BAR')
+
     print(unknown)
-# ['spam']
-  #  args=args2.parse_args()
     print('args', args.dataset)
 
     dist_util.setup_dist()
@@ -125,7 +110,7 @@ def create_argparser():
         resume_checkpoint='',
         use_fp16=False,
         fp16_scale_growth=1e-3,
-        dataset='chexpert',
+        dataset='brats',
         ae_load_dir = '../BinaryLatentDiffusion/logs/binaryae_brats',
         ae_load_step= 00000,
         sampler="bld",

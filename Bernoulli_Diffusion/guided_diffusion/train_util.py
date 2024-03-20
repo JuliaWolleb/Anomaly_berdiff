@@ -208,7 +208,6 @@ class TrainLoop:
                 logger.dumpkvs()
             if self.step % self.save_interval == 0:
                 self.save()
-                # Run for a finite amount of time in integration tests.
                 if os.environ.get("DIFFUSION_TRAINING_TEST", "") and self.step > 0:
                     return
             self.step += 1
@@ -260,8 +259,6 @@ class TrainLoop:
 
             loss = (losses["loss"] * weights).mean()
 
-
-           
             log_loss_dict(
                 self.diffusion, t, {k: v * weights for k, v in losses.items()}
             )
