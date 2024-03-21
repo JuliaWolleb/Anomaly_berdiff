@@ -9,10 +9,10 @@ Our code base is divided into two pars: The folder *Binary_AE* contains code for
 ## Data
 The BRATS2020 dataset can be downloaded [here](https://www.med.upenn.edu/cbica/brats2020/data.html).
 The OCT2017 dataset can be downloaded [here](https://www.kaggle.com/datasets/paultimothymooney/kermany2018).
-- A mini-example how the data needs to be stored can be found in the folder *data* 
+A mini-example how the data needs to be stored can be found in the folder *data*. 
 
 
-<img src="./overview1.png" alt="drawing" style="width:200px;"/>
+<img src="./overview1.png" alt="drawing" style="width:800px;"/>
 
 
 ### Training of the Binarizing Autoencoder
@@ -21,6 +21,9 @@ The OCT2017 dataset can be downloaded [here](https://www.kaggle.com/datasets/pau
 
 - To run the training of the binarizing autoencoder on the OCT dataset, run
 `python  ./Binary_AE/train_ae.py --dataset OCT --amp --ema --steps_per_save_output 5000 --codebook_size 128  --nf 32 --steps_per_log 200 --steps_per_checkpoint 10000 --img_size 256 --batch_size 24 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --log_dir logs/binaryae_OCT --norm_first --data_dir ./data/OCT/training`
+
+
+The trained autoencoder models will be stored in a folder *logs*.
 
 ### Check the Performance of the Pretrained Binarizing Autoencoder
 - For the BRATS2020 dataset, run
@@ -36,6 +39,8 @@ The OCT2017 dataset can be downloaded [here](https://www.kaggle.com/datasets/pau
 `python ./Bernoulli_Diffusion/scripts/latent_train.py --sampler bld  --dataset brats --data_dir './data/brats/training'  --codebook_size 128 --nf 32  --img_size 256 --batch_size 36 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4 --ae_load_dir ./logs/binaryae_brats --ae_load_step 00000`
 - To run the training of the Bernoulli diffusion model on the OCT2017 dataset, run
  `python  ./Bernoulli_Diffusion/scripts/latent_train.py --sampler bld  --dataset OCT --data_dir './data/OCT/training'  --codebook_size 128 --nf 32  --img_size 256 --batch_size 36 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1 --ae_load_dir ./logs/binaryae_OCT --ae_load_step 00000`
+ 
+ The trained Bernoulli diffusion models will be stored in a folder *results*.
 
 ### Inference
 Use the flags `--noise_level` and  `--prob_threshold` to set the noise level L and the probability threshold P, respectively
