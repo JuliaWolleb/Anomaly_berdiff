@@ -3,9 +3,8 @@
 
 This anonymous repo contains the Pytorch implementation of the MICCAI submission 424.
 
-We currently provide:
 
-- Our code base is divided into two pars: The folder *binary_autoencoder* contains code for the training of the binarizing encoder-decoder model. The folder *bernoulli-diffusion*   contains code for the training and evaluation of the Bernoulli diffusion model in the binary latent space. 
+Our code base is divided into two pars: The folder *Binary_AE* contains code for the training of the binarizing encoder-decoder model. The folder *Bernoulli_Diffusion*   contains code for the training and evaluation of the Bernoulli diffusion model in the binary latent space. 
 
 ## Data
 The BRATS2020 dataset can be downloaded [here](https://www.med.upenn.edu/cbica/brats2020/data.html).
