@@ -13,30 +13,38 @@ The OCT2017 dataset can be downloaded [here](https://www.kaggle.com/datasets/pau
 - A mini-example how the data needs to be stored can be found in the folder *data* 
 
 
-![drawing](./overview1.png){ width: 200px; }
+![drawing](./overview1.png)
 
 
 ### Training of the Binarizing Autoencoder
 - To run the training of the binarizing autoencoder on the BRATS2020 dataset, run
- `python -m torch.distributed.launch --nproc_per_node=1 --use_env train_ae_dist.py --dataset brats --amp --ema --steps_per_save_output 5000 --codebook_size 128  --nf 32 --steps_per_log 200 --steps_per_checkpoint 10000 --img_size 256 --batch_size 24 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4  --log_dir logs/binaryae_brats_custom32_128ch --norm_first --data_dir ./data/brats/train_healthy`
+`python  ./Binary_AE/train_ae.py --dataset brats --amp --ema --steps_per_save_output 5000 --codebook_size 128  --nf 32 --steps_per_log 200 --steps_per_checkpoint 10000 --img_size 256 --batch_size 24 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4  --log_dir logs/binaryae_brats --norm_first --data_dir ./data/brats/training`
+
 - To run the training of the binarizing autoencoder on the OCT dataset, run
- `python -m torch.distributed.launch --nproc_per_node=1 --use_env  train_ae_dist.py --dataset OCT --amp --ema --steps_per_save_output 5000 --codebook_size 128  --nf 32 --steps_per_log 200 --steps_per_checkpoint 10000 --img_size 256 --batch_size 20 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --log_dir logs/binaryae_OCT_custom32_128ch  --norm_first --data_dir ./data/OCT/NORMAL`
+`python  ./Binary_AE/train_ae.py --dataset OCT --amp --ema --steps_per_save_output 5000 --codebook_size 128  --nf 32 --steps_per_log 200 --steps_per_checkpoint 10000 --img_size 256 --batch_size 24 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --log_dir logs/binaryae_OCT --norm_first --data_dir ./data/OCT/training`
+
+### Check the Performance of the Pretrained Binarizing Autoencoder
+- For the BRATS2020 dataset, run
+`python  ./Bernoulli_Diffusion/scripts/test_ae.py --sampler bld  --dataset brats --data_dir './data/brats/training' --amp --ema  --codebook_size 128 --nf 32 --steps_per_log 200 --steps_per_checkpoint 10000 --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4  --log_dir ./logs/binaryae_brats --norm_first --ae_load_dir ./logs/binaryae_brats --ae_load_step 00000`
+
+- For the OCT dataset, run
+`python  ./Bernoulli_Diffusion/scripts/test_ae.py --sampler bld  --dataset OCT --data_dir './data/OCT/training' --amp --ema  --codebook_size 128 --nf 32 --steps_per_log 200 --steps_per_checkpoint 10000 --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --log_dir ./logs/binaryae_OCT  --norm_first --ae_load_dir ./logs/binaryae_OCT --ae_load_step 00000`
+
 
 ### Training of the Bernoulli Diffusion Model
 
 - To run the training of the Bernoulli diffusion model on the BRATS2020 dataset, run
-`python scripts/latent_train.py --sampler bld  --dataset chexpert --data_dir './data/brats/train_healthy'  --codebook_size 128 --nf 32  --img_size 256 --batch_size 36 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4 --ae_load_dir ../BinaryLatentDiffusion/logs/binaryae_brats_custom32_128ch --ae_load_step 120000`
+`python ./Bernoulli_Diffusion/scripts/latent_train.py --sampler bld  --dataset brats --data_dir './data/brats/training'  --codebook_size 128 --nf 32  --img_size 256 --batch_size 36 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4 --ae_load_dir ./logs/binaryae_brats --ae_load_step 00000`
 - To run the training of the Bernoulli diffusion model on the OCT2017 dataset, run
- `python scripts/latent_train.py --sampler bld  --dataset OCT --data_dir './data/OCT/NORMAL'  --codebook_size 128 --nf 32  --img_size 256 --batch_size 36 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1 --ae_load_dir ../BinaryLatentDiffusion/logs/binaryae_OCT_custom32_128ch --ae_load_step 12000 --data_dir ./data/OCT/NORMAL`
+ `python  ./Bernoulli_Diffusion/scripts/latent_train.py --sampler bld  --dataset OCT --data_dir './data/OCT/training'  --codebook_size 128 --nf 32  --img_size 256 --batch_size 36 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1 --ae_load_dir ./logs/binaryae_OCT --ae_load_step 00000`
 
 ### Inference
 - To run the inference on the BRATS2020 test set, run
-   `python scripts/latent_sample_anomaly.py    --sampler bld  --dataset chexpert --data_dir './data/brats/val_diseased'  --codebook_size 128 --nf 32  --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4  --ae_load_dir ../BinaryLatentDiffusion/logs/binaryae_brats_custom32_128ch --ae_load_step 12000 --amp --ema  --norm_first `
-- To run the evaluation script to get the anomaly detection scores, run
-   `python3 scripts/evaluation.py`
+   `python ./Bernoulli_Diffusion/scripts/latent_sample_anomaly.py    --sampler bld  --dataset brats --data_dir './data/brats/validation' --noise_level 100 --prob_threshold 0.6  --codebook_size 128 --nf 32  --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4  --ae_load_dir ./logs/binaryae_brats --ae_load_step 00000 --amp --ema  --norm_first`
+   
 
 - To run the inference on the OCT test set, run
-    `python scripts/latent_sample_anomaly.py    --sampler bld  --dataset chexpert --data_dir './data/OCT/DRUSEN'  --codebook_size 128 --nf 32  --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --ae_load_dir ../BinaryLatentDiffusion/logs/binaryae_OCT_custom32_128ch --ae_load_step 12000 --amp --ema  --norm_first`
+    `python  ./Bernoulli_Diffusion/scripts/latent_sample_anomaly.py   --sampler bld  --dataset OCT --data_dir './data/OCT/validation' --noise_level 100 --prob_threshold 0.6 --codebook_size 128 --nf 32  --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --ae_load_dir ./logs/binaryae_OCT --ae_load_step 0000 --amp --ema  --norm_first`
 
 ## Comparing Methods
 ### AnoDDPM
