@@ -12,7 +12,7 @@ The OCT2017 dataset can be downloaded [here](https://www.kaggle.com/datasets/pau
 - A mini-example how the data needs to be stored can be found in the folder *data* 
 
 
-![drawing](./overview1.png)
+<img src="./overview1.png" alt="drawing" style="width:200px;"/>
 
 
 ### Training of the Binarizing Autoencoder
@@ -38,12 +38,13 @@ The OCT2017 dataset can be downloaded [here](https://www.kaggle.com/datasets/pau
  `python  ./Bernoulli_Diffusion/scripts/latent_train.py --sampler bld  --dataset OCT --data_dir './data/OCT/training'  --codebook_size 128 --nf 32  --img_size 256 --batch_size 36 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1 --ae_load_dir ./logs/binaryae_OCT --ae_load_step 00000`
 
 ### Inference
+Use the flags `--noise_level` and  `--prob_threshold` to set the noise level L and the probability threshold P, respectively
 - To run the inference on the BRATS2020 test set, run
-   `python ./Bernoulli_Diffusion/scripts/latent_sample_anomaly.py    --sampler bld  --dataset brats --data_dir './data/brats/validation' --noise_level 100 --prob_threshold 0.6  --codebook_size 128 --nf 32  --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4  --ae_load_dir ./logs/binaryae_brats --ae_load_step 00000 --amp --ema  --norm_first`
+   `python ./Bernoulli_Diffusion/scripts/latent_sample_anomaly.py    --sampler bld  --dataset brats --data_dir './data/brats/validation' --noise_level 200 --prob_threshold 0.5  --codebook_size 128 --nf 32  --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=4  --ae_load_dir ./logs/binaryae_brats --ae_load_step 00000 --amp --ema  --norm_first`
    
 
 - To run the inference on the OCT test set, run
-    `python  ./Bernoulli_Diffusion/scripts/latent_sample_anomaly.py   --sampler bld  --dataset OCT --data_dir './data/OCT/validation' --noise_level 100 --prob_threshold 0.6 --codebook_size 128 --nf 32  --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --ae_load_dir ./logs/binaryae_OCT --ae_load_step 0000 --amp --ema  --norm_first`
+    `python  ./Bernoulli_Diffusion/scripts/latent_sample_anomaly.py   --sampler bld  --dataset OCT --data_dir './data/OCT/validation' --noise_level 200 --prob_threshold 0.5 --codebook_size 128 --nf 32  --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --ae_load_dir ./logs/binaryae_OCT --ae_load_step 0000 --amp --ema  --norm_first`
 
 ## Comparing Methods
 ### AnoDDPM
