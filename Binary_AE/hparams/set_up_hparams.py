@@ -22,6 +22,7 @@ def add_training_args(parser):
 
 
 
+
 # args required for logging
 def add_logging_args(parser):
     parser.add_argument("--log_dir", type=str, default="test")
@@ -34,6 +35,8 @@ def add_logging_args(parser):
     parser.add_argument("--visdom_port", type=int, default=8097)
     parser.add_argument("--visdom_server", type=str)
     parser.add_argument("--data_dir",  type=str, default="brats")
+    parser.add_argument("--noise_level",  type=int, default=200)
+    parser.add_argument("--prob_threshold", type=float,  default=0.5)
 
 
 

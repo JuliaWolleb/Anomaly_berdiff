@@ -8,7 +8,6 @@ sys.path.append("..")
 sys.path.append(".")
 sys.path.append('./Binary_AE')
 sys.path.append('./Bernoulli_Diffusion')
-from guided_diffusion.bratsloader import BRATSDataset
 from guided_diffusion import dist_util, logger
 from guided_diffusion.image_datasets import load_data
 from guided_diffusion.resample import create_named_schedule_sampler

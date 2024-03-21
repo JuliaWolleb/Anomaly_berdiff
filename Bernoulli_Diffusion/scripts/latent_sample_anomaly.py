@@ -72,6 +72,7 @@ def main():
     del ae_state_dict
 
     args, unknown = create_argparser().parse_known_args()
+    print('args', args)
 
     datal = load_data(
         data_dir=H.data_dir,
@@ -107,13 +108,15 @@ def main():
     k=0
     while k < args.num_samples:
         k+=1
-        data, out = next(val_loader)
-        batch=data[:,:4,...]
+        if args.dataset=='brats':
+            data, out = next(val_loader)
+            batch=data[:,:4,...]
+        elif args.dataset == 'OCT':
+            data, out = next(val_loader)
+            batch = data
+        print('batch', batch.shape)
+        viz.image(visualize(batch[0, 0, ...]), opts=dict(caption="img input 0"))
 
-        viz.image(visualize(data[0, 4, ...]), opts=dict(caption="GT label"))
-        viz.image(visualize(batch[0, 1, ...]), opts=dict(caption="img input 1"))
-        viz.image(visualize(batch[0, 2, ...]), opts=dict(caption="img input 2"))
-        viz.image(visualize(batch[0, 3, ...]), opts=dict(caption="img input 3"))
 
 
         model_kwargs = {}
@@ -130,6 +133,8 @@ def main():
             model,
             (args.batch_size, 128,32, 32),
             code,
+            prob_threshold=args.prob_threshold,
+            noise_level=args.noise_level,
             model_kwargs=model_kwargs,
         )
         img=torch.zeros(args.batch_size, 4, 256,256)
@@ -139,15 +144,10 @@ def main():
         print('elapsed time', start.elapsed_time(end))
 
         reconstruction=torch.clamp(reconstruction,0,1).detach().cpu()
-
-        print('did reconstruction', reconstruction.shape)
-        viz.image(visualize(reconstruction[0, 3, ...]), opts=dict(caption="generated reconstruction"))
-        viz.image(visualize(reconstruction[0, 1, ...]), opts=dict(caption="generated reconstruction1"))
-        viz.image(visualize(reconstruction[0, 2, ...]), opts=dict(caption="generated reconstruction2"))
-        viz.image(visualize(reconstruction[0, 3, ...]), opts=dict(caption="generated reconstruction3"))
-
-
-        diff = torch.abs(reconstruction[0, :4, ...] - batch[0,...].cpu()).square()
+        #plot the results on visdom
+        viz.image(visualize(reconstruction[0, 0, ...]), opts=dict(caption="generated reconstruction 0"))
+        diff = torch.abs(reconstruction[0, ...] - batch[0,...].cpu()).square().sum(dim=0)
+        viz.image(diff, opts=dict(caption="anomaly map"))
 
     dist.barrier()
     logger.log("sampling complete")
@@ -157,6 +157,8 @@ def create_argparser():
     defaults = dict(
         num_samples=1038,
         batch_size=1,
+        prob_threshold=0.5,
+        noise_level=200,
         data_dir="./data/brats/validation",
         use_ddim=True,
         model_path='./results/brats000000.pt',

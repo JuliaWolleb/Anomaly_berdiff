@@ -384,6 +384,7 @@ class BinomialDiffusion:
         model,
         x,
         org,
+        prob_threshold,
         mask,
         t,
         denoised_fn=None,
@@ -405,11 +406,10 @@ class BinomialDiffusion:
 
             alpha_bar_t_1 = _extract_into_tensor(self.alphas_cumprod, t-1, x.shape)
             alpha_bar_t = _extract_into_tensor(self.alphas_cumprod, t, x.shape)
-            sigma = (1 - alpha_bar_t_1) / (1 - alpha_bar_t)
 
             mask2 = th.zeros_like(out["model_output"][0, ...]).bool()
             Mask=mask
-            r1, row, col = th.where((out["model_output"][0, ...] > 0.5))   #set the threshold P on the model output
+            r1, row, col = th.where((out["model_output"][0, ...] > prob_threshold))   #set the threshold P on the model output
             mask2[r1, row, col] = True
 
             Mask[0, mask2] = 1
@@ -459,29 +459,27 @@ class BinomialDiffusion:
         model,
         shape,
         img,
+        prob_threshold=0.5,
+        noise_level=200,
         mask=None,
-        noise=None,
         denoised_fn=None,
         model_kwargs=None,
         device=None,
         progress=False,
     ):
-        b = shape[0]
-        t = th.randint(201,202, (b,), device=device).long().to(device)
-
+        t=th.tensor(noise_level).long().to(device)
         org=img.cuda()
         x_noisy = self.q_sample(x_start=img.cuda(), t=t.cuda()).to(device)
 
-        #Same usage as p_sample_loop().
 
         final = None
-        print('ended up in ddim anomaly sampling loop')
         for sample, Mask in self.ddim_sample_loop_progressive(
             model,
             shape,
             time=t,
             noise=x_noisy,
             org=org,
+            prob_threshold=prob_threshold,
             mask=mask,
             denoised_fn=denoised_fn,
             model_kwargs=model_kwargs,
@@ -497,6 +495,7 @@ class BinomialDiffusion:
         time=1000,
         noise=None,
         org=None,
+        prob_threshold=0.5,
         mask=None,
         denoised_fn=None,
         model_kwargs=None,
@@ -537,6 +536,7 @@ class BinomialDiffusion:
                     model,
                     img,
                     org,
+                    prob_threshold,
                     mask,
                     t,
                     denoised_fn=denoised_fn,

@@ -5,7 +5,6 @@ import blobfile as bf
 import torch as th
 
 from guided_diffusion import binomial_diffusion as bd
-from guided_diffusion import gaussian_diffusion as gd
 from guided_diffusion.respace import SpacedDiffusion, space_timesteps
 from .unet import UNetModel, EncoderUNetModel
 
@@ -17,9 +16,8 @@ def model_and_diffusion_defaults():
     """
     print('got defaults here')
     return dict(
-        image_size=32,  #128 #64 #32
-        #norm_first=True,
-        img_channels=128, #64,  #32 #128
+        image_size=32,
+        img_channels=128,
         num_channels=128,
         num_res_blocks=2,
         num_heads=1,
@@ -29,38 +27,13 @@ def model_and_diffusion_defaults():
         diffusion_steps=1000,
         noise_schedule="linear",
         timestep_respacing=[1000],
-        ltype="bce",  # bce, kl, mix
-        mean_type="epsilon",  #"epsilon" "xstart
+        ltype="bce",
+        mean_type="epsilon",
         rescale_timesteps=True,
         use_checkpoint=False,
-        use_scale_shift_norm=False,
+        use_scale_shift_norm=False
     )
 
-
-def model_and_diffusion_defaults_patchddpm():
-    """
-    Defaults for image training.
-    """
-    print('got defaults here')
-    return dict(
-        image_size=256,  #128 #64 #32
-        #norm_first=True,
-        img_channels=4, #64,  #32 #128
-        num_channels=128,
-        num_res_blocks=2,
-        num_heads=1,
-        num_heads_upsample=-1,
-        attention_resolutions="16",
-        dropout=0.0,
-        diffusion_steps=1000,
-        noise_schedule="linear",
-        timestep_respacing=[1000],
-        ltype="mse",  # bce, kl, mix
-        mean_type="xstart",  #"epsilon" "xstart
-        rescale_timesteps=True,
-        use_checkpoint=False,
-        use_scale_shift_norm=False,
-    )
 
 
 def create_model_and_diffusion(
@@ -143,7 +116,6 @@ def create_model(
     
     model = UNetModel(
         in_channels=img_channels,
-        #img_channels=img_channels,
         model_channels=num_channels,
         out_channels=out_channels,
         num_res_blocks=num_res_blocks,
@@ -258,12 +230,8 @@ def classifier_defaults():
         img_channels=32,
         num_channels=128,
         num_res_blocks=2,
+        attention_resolutions="16"
 
-        attention_resolutions="16",  # 16
-       # classifier_use_scale_shift_norm=True,  # False
-      #  classifier_resblock_updown=True,  # False
-       # classifier_pool="spatial",
-       # dataset='chexpert'
     )
 
 
@@ -319,50 +287,3 @@ def create_classifier_and_diffusion(
     return classifier, diffusion
 
 
-
-
-def create_classifier(
-        image_size,
-        img_channels,
-        num_channels,
-        num_res_blocks,
-        use_checkpoint,
-        attention_resolutions,
-        num_heads,
-        num_heads_upsample,
-        use_scale_shift_norm,
-        dropout,
-):
-    if image_size == 256:
-        channel_mult = (1, 1, 2, 2, 4, 4)
-    elif image_size == 128:
-        channel_mult = (1, 1, 2, 3, 4)
-    elif image_size == 64:
-        channel_mult = (1, 2, 3, 4)
-    else:
-        raise ValueError(f"unsupported image size: {image_size}")
-    print('img_channels', img_channels)
-
-    attention_ds = []
-    for res in attention_resolutions.split(","):
-        attention_ds.append(image_size // int(res))
-  #  if dataset == 'brats':
-   #     number_in_channels = 4
-   # else:
-    #    number_in_channels = 1
-    number_in_channels = img_channels
-    print('number_in_channels classifier', number_in_channels)
-
-    return EncoderUNetModel(
-        image_size=image_size,
-        in_channels=number_in_channels,
-        model_channels=num_channels,
-        out_channels=2,
-        num_res_blocks=num_res_blocks,
-        attention_resolutions=tuple(attention_ds),
-        channel_mult=channel_mult,
-        num_head_channels=64,
-     #   use_scale_shift_norm=classifier_use_scale_shift_norm,
-       # resblock_updown=classifier_resblock_updown,
-        pool="spatial",
-    )

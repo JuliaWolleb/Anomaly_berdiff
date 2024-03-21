@@ -285,7 +285,7 @@ class TrainLoop:
     def save(self):
         def save_checkpoint(rate, params):
             state_dict = self.mp_trainer.master_params_to_state_dict(params)
-            if dist.get_rank() == 0:
+            if dist.get_rank() == 0 and self.dataset=='brats':
                 logger.log(f"saving model {rate}...")
                 if not rate:
                     filename = f"brats{(self.step+self.resume_step):06d}.pt"
@@ -295,13 +295,30 @@ class TrainLoop:
                 with bf.BlobFile(bf.join(get_blob_logdir(), filename), "wb") as f:
                     th.save(state_dict, f)
 
+            elif dist.get_rank() == 0 and self.dataset == 'OCT':
+                logger.log(f"saving model {rate}...")
+                if not rate:
+                    filename = f"OCT{(self.step + self.resume_step):06d}.pt"
+                else:
+                    filename = f"emaOCT{rate}_{(self.step + self.resume_step):06d}.pt"
+                print('filename', filename)
+                with bf.BlobFile(bf.join(get_blob_logdir(), filename), "wb") as f:
+                    th.save(state_dict, f)
+
         save_checkpoint(0, self.mp_trainer.master_params)
         for rate, params in zip(self.ema_rate, self.ema_params):
             save_checkpoint(rate, params)
 
-        if dist.get_rank() == 0:
+        if dist.get_rank() == 0 and  self.dataset=='brats':
             with bf.BlobFile(
                 bf.join(get_blob_logdir(), f"optbrats{(self.step+self.resume_step):06d}.pt"),
+                "wb",
+            ) as f:
+                th.save(self.opt.state_dict(), f)
+
+        elif dist.get_rank() == 0 and  self.dataset=='OCT':
+            with bf.BlobFile(
+                bf.join(get_blob_logdir(), f"optOCT{(self.step+self.resume_step):06d}.pt"),
                 "wb",
             ) as f:
                 th.save(self.opt.state_dict(), f)
