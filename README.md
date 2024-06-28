@@ -51,6 +51,13 @@ Use the flags `--noise_level` and  `--prob_threshold` to set the noise level L a
 - To run the inference on the OCT test set, run
     `python  ./Bernoulli_Diffusion/scripts/latent_sample_anomaly.py   --sampler bld  --dataset OCT --data_dir './data/OCT/validation' --noise_level 200 --prob_threshold 0.5 --codebook_size 128 --nf 32  --img_size 256 --batch_size 1 --latent_shape 1 32 32 --ch_mult 1 2 2 4 --n_channels=1  --ae_load_dir ./logs/binaryae_OCT --ae_load_step 0000 --amp --ema  --norm_first`
 
+## Citation
+
+If you use this code repository, please cite our paper:
+
+Wolleb, J., Bieder, F., Friedrich, P., Zhang, P., Durrer, A., & Cattin, P. C. (2024). Binary Noise for Binary Tasks: Masked Bernoulli Diffusion for Unsupervised Anomaly Detection. arXiv preprint arXiv:2403.11667.
+
+
 ## Comparing Methods
 ### AnoDDPM
 We implement the method [AnoDDPM: Anomaly Detection With Denoising Diffusion Probabilistic Models Using Simplex Noise](https://openaccess.thecvf.com/content/CVPR2022W/NTIRE/html/Wyatt_AnoDDPM_Anomaly_Detection_With_Denoising_Diffusion_Probabilistic_Models_Using_Simplex_CVPRW_2022_paper.html) as suggested in [this Github Repo](https://github.com/Julian-Wyatt/AnoDDPM).
