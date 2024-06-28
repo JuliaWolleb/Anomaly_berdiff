@@ -95,7 +95,7 @@ def main2():
 
 def create_argparser():
     defaults = dict(
-        data_dir='/home/juliawolleb/PycharmProjects/Python_Tutorials/BerDiff/diffusion-anomaly-berdiff/data/brats/train_healthy',
+        data_dir='./data/brats/train_healthy',
         schedule_sampler="uniform",
         lr=1e-4,
         amp=False,

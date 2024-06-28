@@ -1,8 +1,8 @@
 
 # Binary Noise for Binary Problems: Unsupervised Anomaly Detection with Masked Bernoulli Diffusion Models
 
-This anonymous repo contains the Pytorch implementation of the MICCAI submission 424.
 
+This repo contains the official Pytorch implementation of the paper *Binary Noise for Binary Problems*. The paper can be found [here](https://arxiv.org/pdf/2403.11667).
 
 Our code base is divided into two pars: The folder *Binary_AE* contains code for the training of the binarizing encoder-decoder model. The folder *Bernoulli_Diffusion*   contains code for the training and evaluation of the Bernoulli diffusion model in the binary latent space. 
 
